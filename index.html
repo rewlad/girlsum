@@ -105,6 +105,7 @@ const useRound = ({count,period,range,reset}) => {
     const canStep = st => st.values.length < count
     const step = act(canStep)(v=>st=>({ ...st, values: [...st.values, getRandValue(range,st.values)] }))
     const addAnswer = act(st=>!st.answered)(v=>st=>({ ...st, answer: st.answer*10+v }))
+    const popAnswer = act(st=>!st.answered)(v=>st=>({ ...st, answer: Math.floor(st.answer/10) }))
     const doAnswer = act(st=>!st.answered && !canStep(st))(v=>st=>({ ...st, answered: true }))
     useEffect(()=>{ condSetTimeout(step,period) },[period,state.values])
     //
@@ -113,20 +114,21 @@ const useRound = ({count,period,range,reset}) => {
     const ok = theSum === answer
     const doReset = answered && (()=>reset({count,period,range,ok}))
     const message = answered ? theSum+"" : getValueMessage(last(values))
-    return {addAnswer,doAnswer,doReset,message,ok,...state}
+    return {addAnswer,popAnswer,doAnswer,doReset,message,ok,...state}
 }
 
 const answerOptions = [0,1,2,3,4,5,6,7,8,9].map(v=>({ value: v, caption: ""+v }))
 
 function Round(prop){
-    const {addAnswer,doAnswer,doReset,message,ok,answer,answered} = useRound(prop)
+    const {addAnswer,popAnswer,doAnswer,doReset,message,ok,answer,answered} = useRound(prop)
     return [
         $(GirlPic,{ key: "pic"}),
         $("div",{ key: "message", className: "output "+(!answered?"":ok?"ok":"nok") }, message||"..."),
         $("div",{ key: "answers", className: "output" }, answer),
         $(Select,{ key: "addAnswer", setValue: addAnswer||(v=>{}), options: answerOptions }),
+        $(Button,{ key: "backspace", activate: popAnswer||(v=>{}), caption: "<-" }),
         doAnswer && $(Button,{ key: "next", activate: doAnswer, caption: "NEXT" }),
-        doReset && $(Button,{ key: "next", activate: doReset, caption: "BACK" }),
+        doReset && $(Button,{ key: "next", activate: doReset, caption: "OK" }),
     ]
 }
 
@@ -151,7 +153,7 @@ const reversed = l => [...l].reverse()
 
 const msLongToText = v => {
     const min = Math.floor(v/60000)
-    const s = Math.round((v-min)/1000)
+    const s = Math.round((v-min*60000)/1000)
     return min+"min "+s+"s"
 }
 
