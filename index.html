@@ -21,6 +21,8 @@
     border-radius: 3px;
     background-color: white;
     cursor: pointer;
+    font-size: 1.5em;
+    min-width: 2em;
 }
 .select > span.selected {
     background-color: yellow;
@@ -32,6 +34,7 @@
     border-radius: 3px;
     margin: 0.1em;
     cursor: pointer;
+    font-size: 1.5em;
 }
 .output {
     font-size: 3em;
@@ -156,9 +159,11 @@ function Stats({stats,setStats}){
         $(Button,{ caption: "RESET STATS", activate: ()=>{
             if(confirm("RESET STATS?")) setStats([])
         } }),
-        reversed(stats).flatMap(({period,count,ok,key})=>[
-            $("div",{style:{color:ok?"green":"yellow"}}, msToText(period)+" * "+count+" = "+msToText(period*count)),           
-        ])
+        $("div",{},
+            reversed(stats).flatMap(({period,count,ok,key})=>[
+                $("span",{key,style:{color:ok?"green":"yellow"}}, " ["+msToText(period)+" * "+count+" = "+msToText(period*count)+"] "),           
+            ])
+        )
     )
 }
 
@@ -174,8 +179,8 @@ function App(){
     }
     return $("div",{ className: "mainTable" }, $("div",{},
         startedRound ? $(Round, {...startedRound,reset}) : [
-            $(Settings, {period,count,setPeriod,setCount,start}),
-            $(Stats,{stats,setStats}),
+            $(Settings, {key:"settings",period,count,setPeriod,setCount,start}),
+            $(Stats, {key:"stats",stats,setStats}),
         ]
     ))
 }
