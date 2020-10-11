@@ -91,19 +91,19 @@ function GirlPic(){
 // Round
 
 const getValueMessage = value => value > 0 ? "+"+value : value < 0 ? ""+value : "-"
-const getRandValue = values => {
+const getRandValue = (range,values) => {
     const iter = () => {
-        const value = Math.floor(Math.random()*20-10)
-        return value === 0 || value === -10 || sum(values)+value < 0 || last(values) === value ? iter() : value
+        const value = Math.floor((Math.random()*2-1)*range)
+        return value === 0 || value === -range || sum(values)+value < 0 || last(values) === value ? iter() : value
     }
     return iter()
 }
 const initRoundState = ()=>({ values: [], answer: 0 })
-const useRound = ({count,period,reset}) => {
+const useRound = ({count,period,range,reset}) => {
     const [state,setState] = useState(initRoundState)
     const act = checked(state,setState)
     const canStep = st => st.values.length < count
-    const step = act(canStep)(v=>st=>({ ...st, values: [...st.values, getRandValue(st.values)] }))
+    const step = act(canStep)(v=>st=>({ ...st, values: [...st.values, getRandValue(range,st.values)] }))
     const addAnswer = act(st=>!st.answered)(v=>st=>({ ...st, answer: st.answer*10+v }))
     const doAnswer = act(st=>!st.answered && !canStep(st))(v=>st=>({ ...st, answered: true }))
     useEffect(()=>{ condSetTimeout(step,period) },[period,state.values])
@@ -111,7 +111,7 @@ const useRound = ({count,period,reset}) => {
     const {values,answer,answered} = state
     const theSum = sum(values)
     const ok = theSum === answer
-    const doReset = answered && (()=>reset(ok))
+    const doReset = answered && (()=>reset({count,period,range,ok}))
     const message = answered ? theSum+"" : getValueMessage(last(values))
     return {addAnswer,doAnswer,doReset,message,ok,...state}
 }
@@ -135,12 +135,14 @@ function Round(prop){
 const msToText = v => (v/1000)+"s"
 const periodOptions = [300,400,500,600,700,800,900,1000,1200,1400,1600,1800,2000,3000,4000].map(v=>({ value: v, caption: msToText(v) }))
 const countOptions = [2,3,4,5,6,7,8,9,10,15,20,25,30].map(v=>({ value: v, caption: ""+v }))
+const rangeOptions = [10,100].map(v=>({ value: v, caption: "<"+v }))
 
-function Settings({period,count,setPeriod,setCount,start}){
+function Settings({period,count,setPeriod,setCount,range,setRange,start}){
     return [
         $(GirlPic,{ key: "pic"}),
         $(Select,{ key: "period", value: period, setValue: setPeriod, options: periodOptions }),
         $(Select,{ key: "count", value: count, setValue: setCount, options: countOptions }),
+        $(Select,{ key: "range", value: range, setValue: setRange, options: rangeOptions }),
         $(Button,{ key: "start", activate: ()=>start(), caption: "START" }),
     ]
 }
@@ -160,8 +162,8 @@ function Stats({stats,setStats}){
             if(confirm("RESET STATS?")) setStats([])
         } }),
         $("div",{},
-            reversed(stats).flatMap(({period,count,ok,key})=>[
-                $("span",{key,style:{color:ok?"green":"yellow"}}, " ["+msToText(period)+" * "+count+" = "+msToText(period*count)+"] "),           
+            reversed(stats).flatMap(({period,count,range,ok,key})=>[
+                $("span",{key,style:{color:ok?"green":"yellow"}}, " ["+range+":"+msToText(period)+" * "+count+" = "+msToText(period*count)+"] "),           
             ])
         )
     )
@@ -171,15 +173,16 @@ function App(){
     const [stats,setStats] = useLocalStorageList("girlsum-stats")
     const [period,setPeriod] = useState(1000)
     const [count,setCount] = useState(3)
+    const [range,setRange] = useState(10)
     const [startedRound,setStartedRound] = useState(undefined)
-    const start = () => setStartedRound({period,count,key:Date.now()})
-    const reset = ok => {
-        setStats(was=>[...was,{period,count,ok,key:Date.now()}])
+    const start = () => setStartedRound({period,count,range,key:Date.now()})
+    const reset = opt => {
+        setStats(was=>[...was,{...opt,key:Date.now()}])
         setStartedRound(undefined)
     }
     return $("div",{ className: "mainTable" }, $("div",{},
         startedRound ? $(Round, {...startedRound,reset}) : [
-            $(Settings, {key:"settings",period,count,setPeriod,setCount,start}),
+            $(Settings, {key:"settings",period,count,setPeriod,setCount,range,setRange,start}),
             $(Stats, {key:"stats",stats,setStats}),
         ]
     ))
