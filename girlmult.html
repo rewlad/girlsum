@@ -1,0 +1,120 @@
+<!DOCTYPE html><head><meta charset="UTF-8">
+<style>
+body {
+    margin: 0px;
+}
+.main {
+    font-family: Arial;
+    background-color: lightblue;
+    height: 100vh;
+    width: 100%;
+    display: grid;
+    grid-template-columns: auto 12em 5em 10em 4em 4em 4em auto;
+    grid-template-areas: ". . . . . . . ."
+        ". questionCapt question pic num1 num2 num3 ."
+        ". answerCapt answer pic num4 num5 num6 ."
+        ". leftCapt left pic num7 num8 num9 ."
+        ". errorsCapt errors again . num0 . ."
+        ". . . . . . . .";
+    grid-template-rows: auto 3em 3em 3em 3em auto;
+}
+
+
+/*
+    text-align: center;
+    vertical-align: middle;
+*/
+.option {
+    display: inline-block;
+    margin: 0.1em;
+    padding: 0.1em;
+    border-radius: 3px;
+    background-color: white;
+    cursor: pointer;
+    font-size: 1.5em;
+    min-width: 2em;
+}
+.button {
+    text-align: center;
+    border: 1px solid gray;
+    border-radius: 3px;
+    margin: 0.1em;
+    cursor: pointer;
+    font-size: 1.5em;
+}
+.caption{
+    font-size: 3em;
+    text-align: left;
+}
+.output {
+    font-size: 3em;
+    text-align: right;
+}
+.nok {
+    color: red;
+}
+
+</style></head><body><script type="module">
+
+import { h, render } from 'https://cdn.pika.dev/preact'
+import { useState } from 'https://cdn.pika.dev/preact/hooks'
+
+const getRandomInt = i=>Math.floor(Math.random()*Math.floor(i))
+
+const range = sz => [...Array(sz).keys()]
+
+const swap = (arr, i, j) => arr.map((v,k)=>k===i?arr[j]:k===j?arr[i]:v)
+
+const shuffle = (arr, i) => i<=0 ? arr : shuffle(swap(arr,i,getRandomInt(i)), i-1)
+
+const LT = 10
+
+const initState = () => {
+    const ordered = range(LT).flatMap(a=>range(LT).map(b=>({question:`${a}*${b}`,answer:a*b}))).filter(c=>c.answer>=10)
+    const cards = shuffle(ordered,ordered.length-1)
+    return {cards,errors:[],answer:0}
+}
+
+function GirlPic({style}){
+    return h("div", {style}, h("img",{ src: "Math-Girl-.svg", style: { width: "10em" } }))
+}
+
+const area = a => ({ display: "table-cell", gridArea: a })
+
+function App(){
+    const[state,setState] = useState(initState)
+    const button = n => h("button",{
+        className: "option",
+        style: area(`num${n}`),
+        onClick: ev=>setState(was=>{
+            const [current,...left] = was.cards
+            const answer = was.answer*10 + n
+            return (
+                answer<10 ? {...was,answer} :
+                answer===current.answer ? {...was,cards:left,answer:0} :
+                {...was,errors:[...was.errors,current],answer:0}
+            )
+        })
+    },n)
+    const [current] = state.cards
+    return h("div",{className:"main"},[
+        h(GirlPic, { style: area("pic") }),
+        current ? [
+            h("div",{ className: "caption", style: area("questionCapt") }, `вопрос`),
+            h("div",{ className: "output", style: area("question") }, current.question),
+            h("div",{ className: "caption", style: area("answerCapt") }, `ответ`),
+            h("div",{ className: "output", style: area("answer") }, state.answer),
+            h("div",{ className: "caption", style: area("leftCapt") }, `осталось`),
+            h("div",{ className: "output", style: area("left") }, state.cards.length),
+            h("div",{ className: "caption", style: area("errorsCapt") }, `ошибок`),
+            h("div",{ className: "output", style: area("errors") }, state.errors.length),
+            range(10).map(m=>button(m)),
+        ] :
+        h("button",{ onClick: ev=>setState(initState), className: "button", style: area("again") },"снова")
+    ])
+}
+
+
+render(h(App,{}), document.body)
+
+</script></body>
